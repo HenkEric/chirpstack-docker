@@ -5,12 +5,12 @@ services:
     container_name: chirpstack_ns
     image: chirpstack/chirpstack-network-server:3
     environment:
-      - POSTGRESQL__DSN=postgres://${PSQL_USERNAME}:${PSQL_PASSWORD}@${PSQL_HOST}:@${PSQL_PORT}/${PSQL_DB}?sslmode=${PSQL_SSLMODE}
-      - REDIS__URL=redis://redis:6379
+      - POSTGRESQL__DSN=postgres://chirpstack_ns:chirpstack_ns@postgresql/chirpstack_ns?sslmode=disable      - REDIS__URL=redis://redis:6379
       - NETWORK_SERVER__BAND__NAME=EU868
       - NETWORK_SERVER__GATEWAY__BACKEND__MQTT__SERVER=tcp://mosquitto:1883
       - JOIN_SERVER__DEFAULT__SERVER=http://chirpstack-application-server:8003
     depends_on:
+      - postgresql
       - mosquitto
 
   chirpstack-application-server:
@@ -19,11 +19,10 @@ services:
     ports:
       - 8080:8080
     environment:
-      - POSTGRESQL__DSN=postgres://${PSQL_USERNAME}:${PSQL_PASSWORD}@${PSQL_HOST}/${PSQL_DB}?sslmode=${PSQL_SSLMODE}
-      - REDIS__URL=redis://redis:6379
+      - POSTGRESQL__DSN=postgres://chirpstack_ns:chirpstack_ns@postgresql/chirpstack_ns?sslmode=disable      - REDIS__URL=redis://redis:6379
       - APPLICATION_SERVER__INTEGRATION__MQTT__SERVER=tcp://mosquitto:1883
       - APPLICATION_SERVER__API__PUBLIC_HOST=chirpstack-application-server:8001
-      - APPLICATION_SERVER__EXTERNAL_API__JWT_SECRET=verysecret
+      - APPLICATION_SERVER__EXTERNAL_API__JWT_SECRET=${CHIRPSTACK_JWT_SECRET} 
     depends_on:
       - chirpstack-network-server
 
@@ -37,20 +36,29 @@ services:
     depends_on: 
       - mosquitto
 
+  postgresql:
+    container_name: chirpstack_postgresql
+    image: postgres:9.6-alpine
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD} 
+    volumes:
+      - ./configuration/postgresql/initdb:/docker-entrypoint-initdb.d
+      - postgresqldata:/var/lib/postgresql/data
+
   redis:
-    container_name: chirpstack_redis
+    container_name: chirpstack_data_structures
     image: redis:5-alpine
     volumes:
       - redisdata:/data
 
   mosquitto:
-    container_name: chirpstack_mosquitto
+    container_name: chirpstack_message_broker
     image: eclipse-mosquitto:1.6
     ports:
       - 1883:1883
 
   influxdb:
-    container_name: chirpstack_influxdb
+    container_name: chirpstack_time_series
     image: influxdb:alpine
     environment:
       - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUXDB_INIT_USERNAME}
@@ -61,4 +69,5 @@ services:
       - 8086:8086
 
 volumes:
+  postgresqldata:
   redisdata:
