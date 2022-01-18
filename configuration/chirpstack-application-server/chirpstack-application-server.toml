@@ -2,7 +2,7 @@
 # configuration example and documentation.
 
 [postgresql]
-dsn="postgres://chirpstack_as:chirpstack_as@postgresql/chirpstack_as?sslmode=disable"
+dsn="postgres://${PSQL_USERNAME:-chirpstack_as}:${PSQL_PASSWORD:-chirpstack_as}@${PSQL_HOST:-postgresql}:${PSQL_PORT:-5432}/${PSQL_DB:-chirpstack_as}?sslmode=${PSQL_SSLMODE:-required}"
 
 [redis]
 url="redis://redis:6379"

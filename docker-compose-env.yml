@@ -2,9 +2,10 @@ version: "3"
 
 services:
   chirpstack-network-server:
+    container_name: chirpstack_ns
     image: chirpstack/chirpstack-network-server:3
     environment:
-      - POSTGRESQL__DSN=postgres://${PSQL_USERNAME}:${PSQL_PASSWORD}@${PSQL_HOST}/${PSQL_DB}?sslmode=${PSQL_SSLMODE}
+      - POSTGRESQL__DSN=postgres://${PSQL_USERNAME}:${PSQL_PASSWORD}@${PSQL_HOST}:@${PSQL_PORT}/${PSQL_DB}?sslmode=${PSQL_SSLMODE}
       - REDIS__URL=redis://redis:6379
       - NETWORK_SERVER__BAND__NAME=EU868
       - NETWORK_SERVER__GATEWAY__BACKEND__MQTT__SERVER=tcp://mosquitto:1883
@@ -13,6 +14,7 @@ services:
       - mosquitto
 
   chirpstack-application-server:
+    container_name: chirpstack_as
     image: chirpstack/chirpstack-application-server:3
     ports:
       - 8080:8080
@@ -26,6 +28,7 @@ services:
       - chirpstack-network-server
 
   chirpstack-gateway-bridge:
+    container_name: chirpstack_gb
     image: chirpstack/chirpstack-gateway-bridge:3
     ports:
       - 1700:1700/udp
@@ -35,14 +38,27 @@ services:
       - mosquitto
 
   redis:
+    container_name: chirpstack_redis
     image: redis:5-alpine
     volumes:
       - redisdata:/data
 
   mosquitto:
+    container_name: chirpstack_mosquitto
     image: eclipse-mosquitto:1.6
     ports:
       - 1883:1883
+
+  influxdb:
+    container_name: chirpstack_influxdb
+    image: influxdb:alpine
+    environment:
+      - DOCKER_INFLUXDB_INIT_USERNAME=${INFLUXDB_INIT_USERNAME}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${INFLUXDB_INIT_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ORG=${INFLUXDB_INIT_ORG}
+      - DOCKER_INFLUXDB_INIT_BUCKET=${INFLUXDB_INIT_BUCKET}
+    ports:
+      - 8086:8086
 
 volumes:
   redisdata:
